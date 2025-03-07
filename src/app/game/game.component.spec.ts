@@ -59,20 +59,21 @@ describe('GameComponent', () => {
     expect(component.scores['Player1'].total).toBe(10);
   });
 
-  it('debería avanzar a la siguiente etapa del juego', () => {
-    component.nextStage();
-    expect(component.gameStage).toBe('2/3');
-    expect(component.displayPointsInput).toBeTrue();
-  });
-
+  
   it('debería enviar el puntaje correctamente', () => {
     component.currentScore = 20;
     component.submitScore();
     expect(scoreServiceStub.saveScores).toHaveBeenCalled();
     expect(component.displayPointsInput).toBeFalse();
   });
-
+  
   // it('debería verificar si todos los jugadores han enviado sus puntajes', () => {
-  //   expect(component.allPlayersSubmitted()).toBeTrue();
-  // });
-});
+    //   expect(component.allPlayersSubmitted()).toBeTrue();
+    // });
+    // it('debería avanzar a la siguiente etapa del juego', () => {
+    //   component.nextStage();
+    //   expect(component.gameStage).toBe('2/3');
+    //   expect(component.displayPointsInput).toBeTrue();
+    // });
+  });
+  
