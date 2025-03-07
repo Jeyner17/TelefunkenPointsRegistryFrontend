@@ -4,26 +4,35 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { io, Socket } from 'socket.io-client';
 import { Player } from '../models/player.model';
 import { Observable, BehaviorSubject } from 'rxjs';
-
+import { tap, catchError } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root',
 })
 export class RoomService {
   private socket: Socket;
-  private apiUrl = 'http://localhost:3000'; // URL del backend
-  private scoresSubject = new BehaviorSubject<{[key: string]: any}>({});
+  private apiUrl = 'http://34.162.232.203:3000'; // URL del backend
+  private scoresSubject = new BehaviorSubject<{[key: string]: { history: number[], total: number }}>({});
+  private playersSubject = new BehaviorSubject<Player[]>([]);
+  
   public scores$ = this.scoresSubject.asObservable();
+  public players$ = this.playersSubject.asObservable();
 
   constructor(private http: HttpClient) {
     this.socket = io(this.apiUrl);
+    
     // Escuchar actualizaciones de puntajes
     this.socket.on('scores-update', (scores) => {
-      this.scoresSubject.next(scores);
+      this.scoresSubject.next(scores || {});
+      console.log('Socket scores-update received:', scores);
     });
-  
+    
+    // Escuchar actualizaciones de jugadores
+    this.socket.on('update-players', (players) => {
+      this.playersSubject.next(players || []);
+      console.log('Socket update-players received:', players);
+    });
   }
-  
 
   // Mantener los métodos existentes
   createRoom(roomData: any): Observable<{ roomId: string }> {
@@ -35,6 +44,7 @@ export class RoomService {
   }
 
   onPlayersUpdate(callback: (players: Player[]) => void): void {
+    // Registrar el callback para las actualizaciones de socket
     this.socket.on('update-players', callback);
   }
 
@@ -43,6 +53,7 @@ export class RoomService {
   }
 
   updatePlayers(players: Player[]): void {
+    this.playersSubject.next(players);
     this.socket.emit('update-players', players);
   }
 
@@ -67,15 +78,44 @@ export class RoomService {
   }
 
   getPlayers(roomId: string): Observable<Player[]> {
-    return this.http.get<Player[]>(`${this.apiUrl}/api/rooms/${roomId}/players`);
+    return this.http.get<Player[]>(`${this.apiUrl}/api/rooms/${roomId}/players`)
+      .pipe(
+        tap(players => {
+          this.playersSubject.next(players);
+        })
+      );
   }
 
-
   updateScore(roomId: string, playerName: string, score: number, stage: number): void {
+    // Actualizar localmente los puntajes
+    const currentScores = { ...this.scoresSubject.value };
+    
+    if (!currentScores[playerName]) {
+      currentScores[playerName] = {
+        history: [],
+        total: 0
+      };
+    }
+    
+    // Asegurarse de que el historial tenga suficientes elementos
+    while (currentScores[playerName].history.length <= stage) {
+      currentScores[playerName].history.push(0);
+    }
+    
+    // Actualizar el puntaje
+    currentScores[playerName].history[stage] = score;
+    
+    // Recalcular el total
+    currentScores[playerName].total = currentScores[playerName].history.reduce((sum, s) => sum + (s || 0), 0);
+    
+    // Actualizar el BehaviorSubject local
+    this.scoresSubject.next(currentScores);
+    
+    // Enviar actualización al servidor
     this.socket.emit('update-score', { roomId, playerName, score, stage });
   }
 
-  getScores(): {[key: string]: any} {
+  getScores(): {[key: string]: { history: number[], total: number }} {
     return this.scoresSubject.value;
   }
 
@@ -85,6 +125,18 @@ export class RoomService {
 
   // Método para obtener puntuaciones actuales
   getRoomScores(roomId: string): Observable<{ [key: string]: { total: number; history: number[] } }> {
-    return this.http.get<{ [key: string]: { total: number; history: number[] } }>(`${this.apiUrl}/api/rooms/${roomId}/scores`);
+    return this.http.get<{ [key: string]: { total: number; history: number[] } }>(`${this.apiUrl}/api/rooms/${roomId}/scores`)
+      .pipe(
+        tap(scores => {
+          this.scoresSubject.next(scores || {});
+        }),
+        catchError(error => {
+          console.error('Error obteniendo puntajes:', error);
+          return new Observable<{ [key: string]: { total: number; history: number[] } }>(observer => {
+            observer.next({});
+            observer.complete();
+          });
+        })
+      );
   }
 }
