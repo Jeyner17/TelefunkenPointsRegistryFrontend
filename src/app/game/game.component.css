@@ -26,6 +26,7 @@
   padding: 1rem;
   border-radius: 8px;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  color: black;
 }
 
 .player-avatar {
@@ -61,7 +62,7 @@
   padding: 0.5rem;
   font-size: 1rem;
   width: 150px;
-  border: 1px solid #ddd;
+  border: 1px solid #f7f7f7;
   border-radius: 4px;
 }
 
@@ -188,6 +189,8 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 1.5rem;
+  color: black;
+
 }
 
 .player-avatar {

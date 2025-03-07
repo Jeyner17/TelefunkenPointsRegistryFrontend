@@ -29,7 +29,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let player of players">
+          <!-- Usar allPlayers en lugar de players para asegurar que todos los jugadores aparezcan -->
+          <tr *ngFor="let player of allPlayers">
             <td class="player-cell">
               <img [src]="player.avatar" alt="Avatar" class="player-small-avatar">
               <span>{{ player.name }}</span>

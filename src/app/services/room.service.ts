@@ -87,32 +87,40 @@ export class RoomService {
   }
 
   updateScore(roomId: string, playerName: string, score: number, stage: number): void {
+    // Normalizar nombre del jugador
+    const normalizedName = playerName.trim();
+    
+    console.log(`Actualizando puntaje para ${normalizedName}: ${score} en etapa ${stage}`);
+    
     // Actualizar localmente los puntajes
     const currentScores = { ...this.scoresSubject.value };
     
-    if (!currentScores[playerName]) {
-      currentScores[playerName] = {
+    if (!currentScores[normalizedName]) {
+      console.log(`Creando nuevo registro para ${normalizedName}`);
+      currentScores[normalizedName] = {
         history: [],
         total: 0
       };
     }
     
     // Asegurarse de que el historial tenga suficientes elementos
-    while (currentScores[playerName].history.length <= stage) {
-      currentScores[playerName].history.push(0);
+    while (currentScores[normalizedName].history.length <= stage) {
+      currentScores[normalizedName].history.push(0);
     }
     
     // Actualizar el puntaje
-    currentScores[playerName].history[stage] = score;
+    currentScores[normalizedName].history[stage] = score;
     
     // Recalcular el total
-    currentScores[playerName].total = currentScores[playerName].history.reduce((sum, s) => sum + (s || 0), 0);
+    currentScores[normalizedName].total = currentScores[normalizedName].history.reduce((sum, s) => sum + (s || 0), 0);
+    
+    console.log(`Nuevo estado de puntajes:`, currentScores);
     
     // Actualizar el BehaviorSubject local
     this.scoresSubject.next(currentScores);
     
     // Enviar actualización al servidor
-    this.socket.emit('update-score', { roomId, playerName, score, stage });
+    this.socket.emit('update-score', { roomId, playerName: normalizedName, score, stage });
   }
 
   getScores(): {[key: string]: { history: number[], total: number }} {
