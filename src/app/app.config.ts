@@ -9,5 +9,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
+    provideHttpClient(), // Asegúrate de incluir provideHttpClient
+    RoomService // Registra RoomService como proveedor
   ]
 };
